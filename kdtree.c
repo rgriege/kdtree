@@ -31,6 +31,7 @@ OF SUCH DAMAGE.
 #endif
 
 #include <stdio.h>
+#include <float.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
@@ -378,12 +379,15 @@ static void kd_nearest_i(struct kdnode *node, const double *pos, struct kdnode *
 	 * with our best so far */
 	dist_sq = 0;
 	for(i=0; i < rect->dim; i++) {
+		if (pos[i] == 0.0 && node->pos[i] > 0.0)
+			goto skip;
 		dist_sq += SQ(node->pos[i] - pos[i]);
 	}
 	if (dist_sq < *result_dist_sq) {
 		*result = node;
 		*result_dist_sq = dist_sq;
 	}
+skip:
 
 	if (farther_subtree) {
 		/* Get the hyperrect of the farther subtree */
@@ -432,8 +436,13 @@ struct kdres *kd_nearest(struct kdtree *kd, const double *pos)
 	/* Our first guesstimate is the root node */
 	result = kd->root;
 	dist_sq = 0;
-	for (i = 0; i < kd->dim; i++)
+	for (i = 0; i < kd->dim; i++) {
+		if (pos[i] == 0.0 && result->pos[i] > 0.0) {
+			dist_sq = DBL_MAX;
+			break;
+		}
 		dist_sq += SQ(result->pos[i] - pos[i]);
+	}
 
 	/* Search for the nearest neighbour recursively */
 	kd_nearest_i(kd->root, pos, &result, &dist_sq, rect);
