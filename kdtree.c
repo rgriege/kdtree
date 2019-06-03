@@ -379,7 +379,7 @@ static void kd_nearest_i(struct kdnode *node, const double *pos, struct kdnode *
 	 * with our best so far */
 	dist_sq = 0;
 	for(i=0; i < rect->dim; i++) {
-		if (pos[i] == 0.0 && node->pos[i] > 0.0)
+		if (i < rect->dim / 2 && pos[i] == 0.0 && node->pos[i] > 0.0)
 			goto skip;
 		dist_sq += SQ(node->pos[i] - pos[i]);
 	}
@@ -437,7 +437,7 @@ struct kdres *kd_nearest(struct kdtree *kd, const double *pos)
 	result = kd->root;
 	dist_sq = 0;
 	for (i = 0; i < kd->dim; i++) {
-		if (pos[i] == 0.0 && result->pos[i] > 0.0) {
+		if (i < kd->dim / 2 && pos[i] == 0.0 && result->pos[i] > 0.0) {
 			dist_sq = DBL_MAX;
 			break;
 		}
