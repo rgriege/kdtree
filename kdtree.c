@@ -396,7 +396,11 @@ static struct kdnode *kd_nearest_1(struct kdtree *kd, const kdcoord *pos)
 	dist_sq = 0;
 	for (i = 0; i < kd->dim; i++) {
 		if (i < kd->dim / 2 && pos[i] == 0.0 && result->pos[i] > 0.0) {
+#ifdef KDTREE_USE_FLOAT
+			dist_sq = FLT_MAX;
+#else
 			dist_sq = DBL_MAX;
+#endif
 			break;
 		}
 		dist_sq += SQ(result->pos[i] - pos[i]);
