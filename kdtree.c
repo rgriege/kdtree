@@ -60,11 +60,10 @@ struct kdhyperrect {
 };
 
 struct kdnode {
-	double *pos;
-	int dir;
-	void *data;
-
 	struct kdnode *left, *right;	/* negative/positive side */
+	void *data;
+	int dir;
+	double pos[];
 };
 
 struct res_node {
@@ -89,6 +88,7 @@ struct kdres {
 
 #define SQ(x)			((x) * (x))
 
+static struct kdnode* node_create(int dim);
 
 static void clear_rec(struct kdnode *node, void (*destr)(void*));
 static int insert_rec(struct kdnode **node, const double *pos, void *data, int dir, int dim);
@@ -146,7 +146,6 @@ static void clear_rec(struct kdnode *node, void (*destr)(void*))
 	if(destr) {
 		destr(node->data);
 	}
-	free(node->pos);
 	free(node);
 }
 
@@ -168,6 +167,16 @@ void kd_data_destructor(struct kdtree *tree, void (*destr)(void*))
 	tree->destr = destr;
 }
 
+static struct kdnode* node_create(int dim)
+{
+	size_t size = dim * sizeof(double);
+	struct kdnode *node;
+
+	if(!(node = malloc(sizeof *node + size))) {
+		return 0;
+	}
+	return node;
+}
 
 static int insert_rec(struct kdnode **nptr, const double *pos, void *data, int dir, int dim)
 {
@@ -175,11 +184,7 @@ static int insert_rec(struct kdnode **nptr, const double *pos, void *data, int d
 	struct kdnode *node;
 
 	if(!*nptr) {
-		if(!(node = malloc(sizeof *node))) {
-			return -1;
-		}
-		if(!(node->pos = malloc(dim * sizeof *node->pos))) {
-			free(node);
+		if(!(node = node_create(dim))) {
 			return -1;
 		}
 		memcpy(node->pos, pos, dim * sizeof *node->pos);
