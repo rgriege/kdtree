@@ -97,7 +97,7 @@ static void clear_results(struct kdres *set);
 
 static struct kdhyperrect* hyperrect_create(int dim, const double *min, const double *max);
 static void hyperrect_free(struct kdhyperrect *rect);
-static void hyperrect_copy(struct kdhyperrect* rect, const double *min, const double *max);
+static void hyperrect_copy(struct kdhyperrect *rect, const double *min, const double *max);
 static void hyperrect_extend(struct kdhyperrect *rect, const double *pos);
 static double hyperrect_dist_sq(struct kdhyperrect *rect, const double *pos);
 
@@ -753,7 +753,7 @@ static void hyperrect_free(struct kdhyperrect *rect)
 	free(rect);
 }
 
-static void hyperrect_copy(struct kdhyperrect* rect, const double *min, const double *max)
+static void hyperrect_copy(struct kdhyperrect *rect, const double *min, const double *max)
 {
 	size_t size = rect->dim * sizeof(double);
 	memcpy(rect->min, min, size);
