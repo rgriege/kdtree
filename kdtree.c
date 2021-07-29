@@ -266,6 +266,21 @@ int kd_insert3(struct kdtree *tree, kdcoord x, kdcoord y, kdcoord z, void *data)
 	return kd_insert(tree, buf, data);
 }
 
+struct kdnode *kd_root(struct kdtree *tree)
+{
+	return tree->root;
+}
+
+struct kdnode *kd_node_left(struct kdnode *node)
+{
+	return node->left;
+}
+
+struct kdnode *kd_node_right(struct kdnode *node)
+{
+	return node->right;
+}
+
 static int find_nearest(struct kdnode *node, const kdcoord *pos, kdcoord range, struct res_node *list, int ordered, int dim)
 {
 	kdcoord dist_sq, dx;

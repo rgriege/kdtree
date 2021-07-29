@@ -70,6 +70,11 @@ int kd_insert3(struct kdtree *tree, kdcoord x, kdcoord y, kdcoord z, void *data)
 struct kdnode *kd_create_node_in_buffer(struct kdtree *tree, const kdcoord *pos, void *data, void *mem);
 void kd_insert_node(struct kdtree *tree, struct kdnode *node);
 
+/* node navigation */
+struct kdnode *kd_root(struct kdtree *tree);
+struct kdnode *kd_node_left(struct kdnode *node);
+struct kdnode *kd_node_right(struct kdnode *node);
+
 /* Find the nearest node from a given point.
  *
  * This function returns a pointer to a result set with at most one element.
