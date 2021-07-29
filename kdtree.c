@@ -56,7 +56,7 @@ OF SUCH DAMAGE.
 
 struct kdhyperrect {
 	int dim;
-	double *min, *max;              /* minimum/maximum coords */
+	double minmax[];
 };
 
 struct kdnode {
@@ -98,6 +98,8 @@ static void clear_results(struct kdres *set);
 static struct kdhyperrect* hyperrect_create(int dim);
 static void hyperrect_free(struct kdhyperrect *rect);
 static void hyperrect_clear(struct kdhyperrect *rect);
+static double *hyperrect_min(struct kdhyperrect *rect);
+static double *hyperrect_max(struct kdhyperrect *rect);
 static void hyperrect_copy(struct kdhyperrect *rect, const double *min, const double *max);
 static void hyperrect_extend(struct kdhyperrect *rect, const double *pos);
 static double hyperrect_dist_sq(struct kdhyperrect *rect, const double *pos);
@@ -368,13 +370,13 @@ static void kd_nearest_i(struct kdnode *node, const double *pos, struct kdnode *
 	if (dummy <= 0) {
 		nearer_subtree = node->left;
 		farther_subtree = node->right;
-		nearer_hyperrect_coord = rect->max + dir;
-		farther_hyperrect_coord = rect->min + dir;
+		nearer_hyperrect_coord = hyperrect_max(rect) + dir;
+		farther_hyperrect_coord = hyperrect_min(rect) + dir;
 	} else {
 		nearer_subtree = node->right;
 		farther_subtree = node->left;
-		nearer_hyperrect_coord = rect->min + dir;
-		farther_hyperrect_coord = rect->max + dir;
+		nearer_hyperrect_coord = hyperrect_min(rect) + dir;
+		farther_hyperrect_coord = hyperrect_max(rect) + dir;
 	}
 
 	if (nearer_subtree) {
@@ -430,7 +432,7 @@ static struct kdnode *kd_nearest_1(struct kdtree *kd, const double *pos)
 	/* Duplicate the bounding hyperrectangle, we will work on the copy.
 	 * This copy is kept around permanently to avoid dynamic allocations. */
 	rect = kd->rect_copy;
-	hyperrect_copy(rect, kd->rect->min, kd->rect->max);
+	hyperrect_copy(rect, hyperrect_min(kd->rect), hyperrect_max(kd->rect));
 
 	/* Our first guesstimate is the root node */
 	result = kd->root;
@@ -731,23 +733,14 @@ void *kd_res_item_data(struct kdres *set)
 /* ---- hyperrectangle helpers ---- */
 static struct kdhyperrect* hyperrect_create(int dim)
 {
-	size_t size = dim * sizeof(double);
+	size_t size = 2 * dim * sizeof(double);
 	struct kdhyperrect* rect = 0;
 
-	if (!(rect = malloc(sizeof(struct kdhyperrect)))) {
+	if (!(rect = malloc(sizeof(struct kdhyperrect) + size))) {
 		return 0;
 	}
 
 	rect->dim = dim;
-	if (!(rect->min = malloc(size))) {
-		free(rect);
-		return 0;
-	}
-	if (!(rect->max = malloc(size))) {
-		free(rect->min);
-		free(rect);
-		return 0;
-	}
 	hyperrect_clear(rect);
 
 	return rect;
@@ -755,49 +748,62 @@ static struct kdhyperrect* hyperrect_create(int dim)
 
 static void hyperrect_free(struct kdhyperrect *rect)
 {
-	free(rect->min);
-	free(rect->max);
 	free(rect);
 }
 
 static void hyperrect_clear(struct kdhyperrect *rect)
 {
-	size_t size = rect->dim * sizeof(double);
-	memset(rect->min, 0, size);
-	memset(rect->max, 0, size);
+	size_t size = 2 * rect->dim * sizeof(double);
+	memset(rect->minmax, 0, size);
 }
 
 static void hyperrect_copy(struct kdhyperrect *rect, const double *min, const double *max)
 {
 	size_t size = rect->dim * sizeof(double);
-	memcpy(rect->min, min, size);
-	memcpy(rect->max, max, size);
+	double *pmin = hyperrect_min(rect);
+	double *pmax = hyperrect_max(rect);
+	memcpy(pmin, min, size);
+	memcpy(pmax, max, size);
+}
+
+static double *hyperrect_min(struct kdhyperrect *rect)
+{
+	return rect->minmax;
+}
+
+static double *hyperrect_max(struct kdhyperrect *rect)
+{
+	return rect->minmax + rect->dim;
 }
 
 static void hyperrect_extend(struct kdhyperrect *rect, const double *pos)
 {
+	double *min = hyperrect_min(rect);
+	double *max = hyperrect_max(rect);
 	int i;
 
 	for (i=0; i < rect->dim; i++) {
-		if (pos[i] < rect->min[i]) {
-			rect->min[i] = pos[i];
+		if (pos[i] < min[i]) {
+			min[i] = pos[i];
 		}
-		if (pos[i] > rect->max[i]) {
-			rect->max[i] = pos[i];
+		if (pos[i] > max[i]) {
+			max[i] = pos[i];
 		}
 	}
 }
 
 static double hyperrect_dist_sq(struct kdhyperrect *rect, const double *pos)
 {
+	double *min = hyperrect_min(rect);
+	double *max = hyperrect_max(rect);
 	int i;
 	double result = 0;
 
 	for (i=0; i < rect->dim; i++) {
-		if (pos[i] < rect->min[i]) {
-			result += SQ(rect->min[i] - pos[i]);
-		} else if (pos[i] > rect->max[i]) {
-			result += SQ(rect->max[i] - pos[i]);
+		if (pos[i] < min[i]) {
+			result += SQ(min[i] - pos[i]);
+		} else if (pos[i] > max[i]) {
+			result += SQ(max[i] - pos[i]);
 		}
 	}
 
