@@ -405,31 +405,18 @@ skip:
 	}
 }
 
-struct kdres *kd_nearest(struct kdtree *kd, const double *pos)
+static struct kdnode *kd_nearest_1(struct kdtree *kd, const double *pos)
 {
 	struct kdhyperrect *rect;
 	struct kdnode *result;
-	struct kdres *rset;
 	double dist_sq;
 	int i;
 
 	if (!kd) return 0;
 	if (!kd->rect) return 0;
 
-	/* Allocate result set */
-	if(!(rset = malloc(sizeof *rset))) {
-		return 0;
-	}
-	if(!(rset->rlist = alloc_resnode())) {
-		free(rset);
-		return 0;
-	}
-	rset->rlist->next = 0;
-	rset->tree = kd;
-
 	/* Duplicate the bounding hyperrectangle, we will work on the copy */
 	if (!(rect = hyperrect_duplicate(kd->rect))) {
-		kd_res_free(rset);
 		return 0;
 	}
 
@@ -449,6 +436,27 @@ struct kdres *kd_nearest(struct kdtree *kd, const double *pos)
 
 	/* Free the copy of the hyperrect */
 	hyperrect_free(rect);
+
+	return result;
+}
+
+struct kdres *kd_nearest(struct kdtree *kd, const double *pos)
+{
+	struct kdnode *result;
+	struct kdres *rset;
+
+	/* Allocate result set */
+	if(!(rset = malloc(sizeof *rset))) {
+		return 0;
+	}
+	if(!(rset->rlist = alloc_resnode())) {
+		free(rset);
+		return 0;
+	}
+	rset->rlist->next = 0;
+	rset->tree = kd;
+
+	result = kd_nearest_1(kd, pos);
 
 	/* Store the result */
 	if (result) {
@@ -515,6 +523,18 @@ struct kdres *kd_nearest3f(struct kdtree *tree, float x, float y, float z)
 	pos[1] = y;
 	pos[2] = z;
 	return kd_nearest(tree, pos);
+}
+
+void *kd_nearest_one(struct kdtree *kd, const double *pos, double *out)
+{
+	struct kdnode *result = kd_nearest_1(kd, pos);
+	if(!result) {
+		return 0;
+	}
+	if(out) {
+		memcpy(out, result->pos, kd->dim * sizeof *pos);
+	}
+	return result->data;
 }
 
 /* ---- nearest N search ---- */

@@ -65,6 +65,14 @@ struct kdres *kd_nearestf(struct kdtree *tree, const float *pos);
 struct kdres *kd_nearest3(struct kdtree *tree, double x, double y, double z);
 struct kdres *kd_nearest3f(struct kdtree *tree, float x, float y, float z);
 
+/* Find the nearest node from a given point.
+ *
+ * This function returns a pointer to the data of the nearest node,
+ * or 0 if it doesn't exist. Unlike kd_nearest*, it does not perform
+ * any allocations for the result set.
+ */
+void *kd_nearest_one(struct kdtree *tree, const double *pos, double *out);
+
 /* Find the N nearest nodes from a given point.
  *
  * This function returns a pointer to a result set, with at most N elements,
