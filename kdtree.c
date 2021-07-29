@@ -95,8 +95,9 @@ static int insert_rec(struct kdnode **node, const double *pos, void *data, int d
 static int rlist_insert(struct res_node *list, struct kdnode *item, double dist_sq);
 static void clear_results(struct kdres *set);
 
-static struct kdhyperrect* hyperrect_create(int dim, const double *min, const double *max);
+static struct kdhyperrect* hyperrect_create(int dim);
 static void hyperrect_free(struct kdhyperrect *rect);
+static void hyperrect_clear(struct kdhyperrect *rect);
 static void hyperrect_copy(struct kdhyperrect *rect, const double *min, const double *max);
 static void hyperrect_extend(struct kdhyperrect *rect, const double *pos);
 static double hyperrect_dist_sq(struct kdhyperrect *rect, const double *pos);
@@ -122,8 +123,8 @@ struct kdtree *kd_create(int k)
 	tree->dim = k;
 	tree->root = 0;
 	tree->destr = 0;
-	tree->rect = 0;
-	tree->rect_copy = 0;
+	tree->rect = hyperrect_create(tree->dim);
+	tree->rect_copy = hyperrect_create(tree->dim);
 
 	return tree;
 }
@@ -132,6 +133,10 @@ void kd_free(struct kdtree *tree)
 {
 	if(tree) {
 		kd_clear(tree);
+		hyperrect_free(tree->rect);
+		tree->rect = 0;
+		hyperrect_free(tree->rect_copy);
+		tree->rect_copy = 0;
 		free(tree);
 	}
 }
@@ -154,12 +159,8 @@ void kd_clear(struct kdtree *tree)
 	clear_rec(tree->root, tree->destr);
 	tree->root = 0;
 
-	if (tree->rect) {
-		hyperrect_free(tree->rect);
-		tree->rect = 0;
-		hyperrect_free(tree->rect_copy);
-		tree->rect_copy = 0;
-	}
+	hyperrect_clear(tree->rect);
+	hyperrect_clear(tree->rect_copy);
 }
 
 void kd_data_destructor(struct kdtree *tree, void (*destr)(void*))
@@ -205,13 +206,14 @@ static int insert_rec(struct kdnode **nptr, const double *pos, void *data, int d
 
 int kd_insert(struct kdtree *tree, const double *pos, void *data)
 {
+	int was_empty = tree->root == 0;
+
 	if (insert_rec(&tree->root, pos, data, 0, tree->dim)) {
 		return -1;
 	}
 
-	if (tree->rect == 0) {
-		tree->rect = hyperrect_create(tree->dim, pos, pos);
-		tree->rect_copy = hyperrect_create(tree->dim, pos, pos);
+	if (was_empty) {
+		hyperrect_copy(tree->rect, pos, pos);
 	} else {
 		hyperrect_extend(tree->rect, pos);
 	}
@@ -423,7 +425,7 @@ static struct kdnode *kd_nearest_1(struct kdtree *kd, const double *pos)
 	int i;
 
 	if (!kd) return 0;
-	if (!kd->rect) return 0;
+	if (!kd->root) return 0;
 
 	/* Duplicate the bounding hyperrectangle, we will work on the copy.
 	 * This copy is kept around permanently to avoid dynamic allocations. */
@@ -727,7 +729,7 @@ void *kd_res_item_data(struct kdres *set)
 }
 
 /* ---- hyperrectangle helpers ---- */
-static struct kdhyperrect* hyperrect_create(int dim, const double *min, const double *max)
+static struct kdhyperrect* hyperrect_create(int dim)
 {
 	size_t size = dim * sizeof(double);
 	struct kdhyperrect* rect = 0;
@@ -746,7 +748,7 @@ static struct kdhyperrect* hyperrect_create(int dim, const double *min, const do
 		free(rect);
 		return 0;
 	}
-	hyperrect_copy(rect, min, max);
+	hyperrect_clear(rect);
 
 	return rect;
 }
@@ -756,6 +758,13 @@ static void hyperrect_free(struct kdhyperrect *rect)
 	free(rect->min);
 	free(rect->max);
 	free(rect);
+}
+
+static void hyperrect_clear(struct kdhyperrect *rect)
+{
+	size_t size = rect->dim * sizeof(double);
+	memset(rect->min, 0, size);
+	memset(rect->max, 0, size);
 }
 
 static void hyperrect_copy(struct kdhyperrect *rect, const double *min, const double *max)
