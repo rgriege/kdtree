@@ -77,6 +77,7 @@ struct kdtree {
 	int dim;
 	struct kdnode *root;
 	struct kdhyperrect *rect;
+	struct kdhyperrect *rect_copy;
 	void (*destr)(void*);
 };
 
@@ -96,7 +97,7 @@ static void clear_results(struct kdres *set);
 
 static struct kdhyperrect* hyperrect_create(int dim, const double *min, const double *max);
 static void hyperrect_free(struct kdhyperrect *rect);
-static struct kdhyperrect* hyperrect_duplicate(const struct kdhyperrect *rect);
+static void hyperrect_copy(struct kdhyperrect* rect, const double *min, const double *max);
 static void hyperrect_extend(struct kdhyperrect *rect, const double *pos);
 static double hyperrect_dist_sq(struct kdhyperrect *rect, const double *pos);
 
@@ -122,6 +123,7 @@ struct kdtree *kd_create(int k)
 	tree->root = 0;
 	tree->destr = 0;
 	tree->rect = 0;
+	tree->rect_copy = 0;
 
 	return tree;
 }
@@ -156,6 +158,8 @@ void kd_clear(struct kdtree *tree)
 	if (tree->rect) {
 		hyperrect_free(tree->rect);
 		tree->rect = 0;
+		hyperrect_free(tree->rect_copy);
+		tree->rect_copy = 0;
 	}
 }
 
@@ -202,6 +206,7 @@ int kd_insert(struct kdtree *tree, const double *pos, void *data)
 
 	if (tree->rect == 0) {
 		tree->rect = hyperrect_create(tree->dim, pos, pos);
+		tree->rect_copy = hyperrect_create(tree->dim, pos, pos);
 	} else {
 		hyperrect_extend(tree->rect, pos);
 	}
@@ -415,10 +420,10 @@ static struct kdnode *kd_nearest_1(struct kdtree *kd, const double *pos)
 	if (!kd) return 0;
 	if (!kd->rect) return 0;
 
-	/* Duplicate the bounding hyperrectangle, we will work on the copy */
-	if (!(rect = hyperrect_duplicate(kd->rect))) {
-		return 0;
-	}
+	/* Duplicate the bounding hyperrectangle, we will work on the copy.
+	 * This copy is kept around permanently to avoid dynamic allocations. */
+	rect = kd->rect_copy;
+	hyperrect_copy(rect, kd->rect->min, kd->rect->max);
 
 	/* Our first guesstimate is the root node */
 	result = kd->root;
@@ -433,9 +438,6 @@ static struct kdnode *kd_nearest_1(struct kdtree *kd, const double *pos)
 
 	/* Search for the nearest neighbour recursively */
 	kd_nearest_i(kd->root, pos, &result, &dist_sq, rect);
-
-	/* Free the copy of the hyperrect */
-	hyperrect_free(rect);
 
 	return result;
 }
@@ -739,8 +741,7 @@ static struct kdhyperrect* hyperrect_create(int dim, const double *min, const do
 		free(rect);
 		return 0;
 	}
-	memcpy(rect->min, min, size);
-	memcpy(rect->max, max, size);
+	hyperrect_copy(rect, min, max);
 
 	return rect;
 }
@@ -752,9 +753,11 @@ static void hyperrect_free(struct kdhyperrect *rect)
 	free(rect);
 }
 
-static struct kdhyperrect* hyperrect_duplicate(const struct kdhyperrect *rect)
+static void hyperrect_copy(struct kdhyperrect* rect, const double *min, const double *max)
 {
-	return hyperrect_create(rect->dim, rect->min, rect->max);
+	size_t size = rect->dim * sizeof(double);
+	memcpy(rect->min, min, size);
+	memcpy(rect->max, max, size);
 }
 
 static void hyperrect_extend(struct kdhyperrect *rect, const double *pos)
