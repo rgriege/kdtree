@@ -33,10 +33,17 @@ extern "C" {
 
 struct kdtree;
 struct kdres;
+struct kdnode;
 
+/* compute memory buffer sizes for the tree and nodes.
+ * if you use these to manually allocated the tree and nodes,
+ * do NOT call kd_free or kd_clear */
+size_t kd_tree_size(int k);
+size_t kd_node_size(struct kdtree *tree);
 
 /* create a kd-tree for "k"-dimensional data */
 struct kdtree *kd_create(int k);
+struct kdtree *kd_create_in_buffer(int k, void *mem);
 
 /* free the struct kdtree */
 void kd_free(struct kdtree *tree);
@@ -55,6 +62,9 @@ int kd_insert(struct kdtree *tree, const double *pos, void *data);
 int kd_insertf(struct kdtree *tree, const float *pos, void *data);
 int kd_insert3(struct kdtree *tree, double x, double y, double z, void *data);
 int kd_insert3f(struct kdtree *tree, float x, float y, float z, void *data);
+
+struct kdnode *kd_create_node_in_buffer(struct kdtree *tree, const double *pos, void *data, void *mem);
+void kd_insert_node(struct kdtree *tree, struct kdnode *node);
 
 /* Find the nearest node from a given point.
  *
