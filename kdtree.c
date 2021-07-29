@@ -95,8 +95,8 @@ static int insert_rec(struct kdnode **node, const double *pos, void *data, int d
 static int rlist_insert(struct res_node *list, struct kdnode *item, double dist_sq);
 static void clear_results(struct kdres *set);
 
-static struct kdhyperrect* hyperrect_create(int dim);
-static void hyperrect_free(struct kdhyperrect *rect);
+static size_t hyperrect_size(int dim);
+static struct kdhyperrect* hyperrect_create_in_buffer(int dim, void *mem);
 static void hyperrect_clear(struct kdhyperrect *rect);
 static double *hyperrect_min(struct kdhyperrect *rect);
 static double *hyperrect_max(struct kdhyperrect *rect);
@@ -116,17 +116,21 @@ static void free_resnode(struct res_node*);
 
 struct kdtree *kd_create(int k)
 {
+	size_t tree_size = sizeof(struct kdtree);
+	size_t rect_size = hyperrect_size(k);
+	void *mem;
 	struct kdtree *tree;
 
-	if(!(tree = malloc(sizeof *tree))) {
+	if(!(mem = malloc(tree_size + 2 * rect_size))) {
 		return 0;
 	}
 
+	tree = mem;
 	tree->dim = k;
 	tree->root = 0;
 	tree->destr = 0;
-	tree->rect = hyperrect_create(tree->dim);
-	tree->rect_copy = hyperrect_create(tree->dim);
+	tree->rect = hyperrect_create_in_buffer(tree->dim, (char*)mem + tree_size);
+	tree->rect_copy = hyperrect_create_in_buffer(tree->dim, (char*)mem + tree_size + rect_size);
 
 	return tree;
 }
@@ -135,9 +139,7 @@ void kd_free(struct kdtree *tree)
 {
 	if(tree) {
 		kd_clear(tree);
-		hyperrect_free(tree->rect);
 		tree->rect = 0;
-		hyperrect_free(tree->rect_copy);
 		tree->rect_copy = 0;
 		free(tree);
 	}
@@ -731,24 +733,19 @@ void *kd_res_item_data(struct kdres *set)
 }
 
 /* ---- hyperrectangle helpers ---- */
-static struct kdhyperrect* hyperrect_create(int dim)
+static size_t hyperrect_size(int dim)
 {
-	size_t size = 2 * dim * sizeof(double);
-	struct kdhyperrect* rect = 0;
+	return sizeof(struct kdhyperrect) + 2 * dim * sizeof(double);
+}
 
-	if (!(rect = malloc(sizeof(struct kdhyperrect) + size))) {
-		return 0;
-	}
+static struct kdhyperrect* hyperrect_create_in_buffer(int dim, void *mem)
+{
+	struct kdhyperrect* rect = mem;
 
 	rect->dim = dim;
 	hyperrect_clear(rect);
 
 	return rect;
-}
-
-static void hyperrect_free(struct kdhyperrect *rect)
-{
-	free(rect);
 }
 
 static void hyperrect_clear(struct kdhyperrect *rect)
