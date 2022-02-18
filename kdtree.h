@@ -84,11 +84,12 @@ struct kdres *kd_nearest3(struct kdtree *tree, kdcoord x, kdcoord y, kdcoord z);
 
 /* Find the nearest node from a given point.
  *
- * This function returns a pointer to the data of the nearest node,
- * or 0 if it doesn't exist. Unlike kd_nearest*, it does not perform
- * any allocations for the result set.
+ * This function returns non-zero on success or zero if a node was
+ * not found. On success, the pointer to the data of the nearest node
+ * is also set. Unlike kd_nearest*, it does not perform any allocations
+ * for the result set.
  */
-void *kd_nearest_one(struct kdtree *tree, const kdcoord *pos, kdcoord *out);
+int kd_nearest_one(struct kdtree *tree, const kdcoord *pos, kdcoord *out, void **data);
 
 /* Find any nearest nodes from a given point within a range.
  *

@@ -455,7 +455,7 @@ struct kdres *kd_nearest3(struct kdtree *tree, kdcoord x, kdcoord y, kdcoord z)
 	return kd_nearest(tree, pos);
 }
 
-void *kd_nearest_one(struct kdtree *kd, const kdcoord *pos, kdcoord *out)
+int kd_nearest_one(struct kdtree *kd, const kdcoord *pos, kdcoord *out, void **data)
 {
 	struct kdnode *result = kd_nearest_1(kd, pos);
 	if(!result) {
@@ -464,7 +464,10 @@ void *kd_nearest_one(struct kdtree *kd, const kdcoord *pos, kdcoord *out)
 	if(out) {
 		memcpy(out, result->pos, kd->dim * sizeof *pos);
 	}
-	return result->data;
+	if(data) {
+		*data = result->data;
+	}
+	return 1;
 }
 
 struct kdres *kd_nearest_range(struct kdtree *kd, const kdcoord *pos, kdcoord range)
