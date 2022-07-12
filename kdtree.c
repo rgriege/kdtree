@@ -399,12 +399,13 @@ static struct kdnode *kd_nearest_1(struct kdtree *kd, const kdcoord *pos)
 	hyperrect_copy(rect, hyperrect_min(kd->rect), hyperrect_max(kd->rect));
 
 	/* Our first guesstimate is the root node */
-	result = kd->root;
-	if (kd_filter_zero_weight(pos, result->pos, rect->dim) == 0) {
+	if (kd_filter_zero_weight(pos, kd->root->pos, rect->dim) == 0) {
+		result = kd->root;
 		dist_sq = 0;
 		for (i = 0; i < kd->dim; i++)
 			dist_sq += SQ(result->pos[i] - pos[i]);
 	} else {
+		result = NULL;
 #ifdef KDTREE_USE_FLOAT
 		dist_sq = FLT_MAX;
 #else
