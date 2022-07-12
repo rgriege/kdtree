@@ -47,9 +47,12 @@ struct kdnode;
 size_t kd_tree_size(int k);
 size_t kd_node_size(struct kdtree *tree);
 
-/* create a kd-tree for "k"-dimensional data */
-struct kdtree *kd_create(int k);
-struct kdtree *kd_create_in_buffer(int k, void *mem);
+/* create a kd-tree for "k"-dimensional data.
+ * if the k_zero_filter parameter is not 0, then any nearest query
+ * that has a coord of 0 in any position will filter out any nodes
+ * with non-0 values in those positions */
+struct kdtree *kd_create(int k, int k_zero_filter);
+struct kdtree *kd_create_in_buffer(int k, int k_zero_filter, void *mem);
 
 /* free the struct kdtree */
 void kd_free(struct kdtree *tree);
