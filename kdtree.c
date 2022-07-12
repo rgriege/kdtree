@@ -314,6 +314,15 @@ static int find_nearest(struct kdnode *node, const kdcoord *pos, kdcoord range, 
 	return added_res;
 }
 
+static int kd_filter_zero_weight(const kdcoord *goal, const kdcoord *node, int dim)
+{
+	int i;
+	for(i=0; i < dim / 2; i++)
+		if (goal[i] == 0.0 && node[i] > 0.0)
+			return -1;
+	return 0;
+}
+
 static void kd_nearest_i(struct kdnode *node, const kdcoord *pos, struct kdnode **result, kdcoord *result_dist_sq, struct kdhyperrect* rect)
 {
 	int dir = node->dir;
@@ -348,17 +357,15 @@ static void kd_nearest_i(struct kdnode *node, const kdcoord *pos, struct kdnode 
 
 	/* Check the distance of the point at the current node, compare it
 	 * with our best so far */
-	dist_sq = 0;
-	for(i=0; i < rect->dim; i++) {
-		if (i < rect->dim / 2 && pos[i] == 0.0 && node->pos[i] > 0.0)
-			goto skip;
-		dist_sq += SQ(node->pos[i] - pos[i]);
+	if (kd_filter_zero_weight(pos, node->pos, rect->dim) == 0) {
+		dist_sq = 0;
+		for(i=0; i < rect->dim; i++)
+			dist_sq += SQ(node->pos[i] - pos[i]);
+		if (dist_sq < *result_dist_sq) {
+			*result = node;
+			*result_dist_sq = dist_sq;
+		}
 	}
-	if (dist_sq < *result_dist_sq) {
-		*result = node;
-		*result_dist_sq = dist_sq;
-	}
-skip:
 
 	if (farther_subtree) {
 		/* Get the hyperrect of the farther subtree */
@@ -393,17 +400,16 @@ static struct kdnode *kd_nearest_1(struct kdtree *kd, const kdcoord *pos)
 
 	/* Our first guesstimate is the root node */
 	result = kd->root;
-	dist_sq = 0;
-	for (i = 0; i < kd->dim; i++) {
-		if (i < kd->dim / 2 && pos[i] == 0.0 && result->pos[i] > 0.0) {
+	if (kd_filter_zero_weight(pos, result->pos, rect->dim) == 0) {
+		dist_sq = 0;
+		for (i = 0; i < kd->dim; i++)
+			dist_sq += SQ(result->pos[i] - pos[i]);
+	} else {
 #ifdef KDTREE_USE_FLOAT
-			dist_sq = FLT_MAX;
+		dist_sq = FLT_MAX;
 #else
-			dist_sq = DBL_MAX;
+		dist_sq = DBL_MAX;
 #endif
-			break;
-		}
-		dist_sq += SQ(result->pos[i] - pos[i]);
 	}
 
 	/* Search for the nearest neighbour recursively */
