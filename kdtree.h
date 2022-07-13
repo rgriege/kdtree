@@ -69,9 +69,7 @@ void kd_data_destructor(struct kdtree *tree, void (*destr)(void*));
 /* insert a node, specifying its position, and optional data */
 int kd_insert(struct kdtree *tree, const kdcoord *pos, void *data);
 int kd_insert3(struct kdtree *tree, kdcoord x, kdcoord y, kdcoord z, void *data);
-
-struct kdnode *kd_create_node_in_buffer(struct kdtree *tree, const kdcoord *pos, void *data, void *mem);
-void kd_insert_node(struct kdtree *tree, struct kdnode *node);
+int kd_insert_with_buffer(struct kdtree *tree, const kdcoord *pos, void *data, void *mem);
 
 /* node navigation */
 struct kdnode *kd_root(struct kdtree *tree);

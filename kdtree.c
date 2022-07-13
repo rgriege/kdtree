@@ -191,6 +191,18 @@ void kd_data_destructor(struct kdtree *tree, void (*destr)(void*))
 	tree->destr = destr;
 }
 
+static struct kdnode* node_create_in_buffer(struct kdtree *tree, const kdcoord *pos, void *data, void *mem)
+{
+	struct kdnode *node = mem;
+
+	memcpy(node->pos, pos, tree->dim * sizeof *pos);
+	node->data = data;
+	node->dir = 0;
+	node->left = node->right = 0;
+
+	return node;
+}
+
 static struct kdnode* node_create(struct kdtree *tree, const kdcoord *pos, void *data)
 {
 	size_t size = kd_node_size(tree);
@@ -199,7 +211,7 @@ static struct kdnode* node_create(struct kdtree *tree, const kdcoord *pos, void 
 	if(!(mem = malloc(size))) {
 		return 0;
 	}
-	return kd_create_node_in_buffer(tree, pos, data, mem);
+	return node_create_in_buffer(tree, pos, data, mem);
 }
 
 static void insert_rec(struct kdnode **nptr, struct kdnode *node, int dir, int dim)
@@ -222,19 +234,7 @@ static void insert_rec(struct kdnode **nptr, struct kdnode *node, int dir, int d
 	}
 }
 
-struct kdnode *kd_create_node_in_buffer(struct kdtree *tree, const kdcoord *pos, void *data, void *mem)
-{
-	struct kdnode *node = mem;
-
-	memcpy(node->pos, pos, tree->dim * sizeof *pos);
-	node->data = data;
-	node->dir = 0;
-	node->left = node->right = 0;
-
-	return node;
-}
-
-void kd_insert_node(struct kdtree *tree, struct kdnode *node)
+static void kd_insert_node(struct kdtree *tree, struct kdnode *node)
 {
 	int was_empty = tree->root == 0;
 
@@ -266,6 +266,13 @@ int kd_insert3(struct kdtree *tree, kdcoord x, kdcoord y, kdcoord z, void *data)
 	buf[1] = y;
 	buf[2] = z;
 	return kd_insert(tree, buf, data);
+}
+
+int kd_insert_with_buffer(struct kdtree *tree, const kdcoord *pos, void *data, void *mem)
+{
+	struct kdnode *node = node_create_in_buffer(tree, pos, data, mem);
+	kd_insert_node(tree, node);
+	return 0;
 }
 
 struct kdnode *kd_root(struct kdtree *tree)
