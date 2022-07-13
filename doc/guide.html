@@ -8,14 +8,18 @@
 		
 		<h2>Creating a tree</h2>
 		<p>
-			Call the <code>kd_create</code> function to create a tree. It takes a single
-			argument specifying the dimensionality of the data, and returns a pointer to the
-			tree. You need to pass that pointer as an argument to any functions that
-			manipulate the kd-tree.
+			Call the <code>kd_create</code> function to create a tree. It takes two arguments
+			argument specifying the dimensionality of the data and the optional zero-weight filter,
+			and returns a pointer to the tree. You need to pass that pointer as an argument to any
+			functions that manipulate the kd-tree.
 		</p>
 		<p>
 			For example you may create a 3-dimensional kd-tree with:<br>
-			<code>void *kd = kd_create(3);</code>
+			<code>void *kd = kd_create(3, 0);</code>
+		</p>
+		<p>
+			You can call the <code>kd_create_in_buffer</code> variant to supply a manually-allocated
+			memory block of <code>kd_tree_size</code> bytes and avoid the malloc call.
 		</p>
 
 		<h2>Destroying a tree</h2>
@@ -24,6 +28,9 @@
 			order to free the memory occupied by the tree. Note that any data pointers passed
 			by the user with the <code>kd_insert</code> functions will not be freed, unless a
 			"<em>data destructor</em>" function is provided (see below).
+		</p>
+		<p>
+			Do not call this function if you created the tree with <code>kd_create_in_buffer</code>.
 		</p>
 
 		<h2>Managing user pointers</h2>
@@ -48,16 +55,21 @@
 			as their last argument (it can be null if no user data are needed).
 		</p>
 		<p>
-			<code>kd_insert</code>, and <code>kd_insertf</code> expect a
-			pointer to an array of <em>k</em> <code>double</code>s or <code>float</code>s respectively as
-			a second argument, which contain the position of the inserted point. So for
-			example, for a 3D tree you need to pass an array of 3 values.
+			<code>kd_insert</code> expects a pointer to an array of <em>k</em>
+			<code>double</code>s or <code>float</code>s respectively as a second argument,
+			which contain the position of the inserted point. So for example, for a 3D tree
+			you need to pass an array of 3 values.
 		</p>
 		<p>
-			The convenience <code>kd_insert3</code>, and <code>kd_insert3f</code> are meant
-			to be called for 3-dimensional kd-trees (which is considered the most common
-			case), and expect 3 values (<code>double</code>s or <code>float</code>s)
-			signifying the position of the 3-dimensional point to be stored.
+			The convenience <code>kd_insert3</code> is meant to be called for 3-dimensional
+			kd-trees (which is considered the most common case), and expect 3 values
+			(<code>double</code>s or <code>float</code>s) signifying the position of the
+			3-dimensional point to be stored.
+		</p>
+		<p>
+			You can call the <code>kd_insert_with_buffer</code> variant to supply a manually-
+			allocated memory block of <code>kd_node_size</code> bytes and avoid the malloc
+			call.
 		</p>
 
 		<h2>Performing nearest-neighbor queries</h2>
@@ -90,6 +102,10 @@ result_set = kd_nearest_range(kd, pt, 3.0);
 			A result set aquired with one of the <code>kd_nearest_range</code> functions,
 			must be freed by calling <code>kd_res_free</code> and supplying the result set
 			pointer as its only argument.
+		</p>
+		<p>
+			You can call <code>kd_nearest_one</code> to return only the nearest result, if it
+			exists, without any allocations for a result set.
 		</p>
 		<p>
 			to be continued...

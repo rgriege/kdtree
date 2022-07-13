@@ -17,6 +17,22 @@ cross-platform.
 See under the ``doc/`` and ``examples/`` directories to find out how to use the
 kdtree library.
 
+Fork
+----
+
+This fork of the library has been modified to:
+- Choose between using floats & doubles for coordinates with a compiler flag
+- Run faster, as a result of several changes to...
+- Use less memory
+- Support application-provided memory buffers for most operations [0]
+- Add an optional filter to skip nodes for with non-zero coordinates if the
+  corresponding input coordinates have a value of zero.
+
+[0] The only operations that still require internal allocations are the
+nearest node queries that return a result set.  If you only care about
+searching for the single nearest node, then you can use the library without
+any internal allocations.
+
 License
 -------
 Author: John Tsiombikas <nuclear@member.fsf.org>
